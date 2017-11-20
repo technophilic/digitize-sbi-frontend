@@ -65,6 +65,7 @@
     top: 0;
     bottom: 0;
     margin: auto;
+    left: 0;
 }
 h3{
   font-family: 'Lato',sans-serif !important;
@@ -88,4 +89,53 @@ h4{
     margin: 10px auto;
     position: relative;
     text-align: center;
+}
+.customInputField{
+    border: none;
+    background: #17212C;
+    padding: 4px 4px 0 0;
+    width: 350px;
+    font-weight: 700;
+    font-size: 1.2em;
+    margin: 10px 0;
+    color: #fff;
+}
+p{
+  color: #fff;
+  margin: auto;
+}
+.image{
+  margin: auto;
+  max-width: 70%;
+  text-align: center;
+  margin-top: 20px;
+}
+.testing{
+  margin: auto;
+  text-align: center;
+  font-size: 14px;
+  color: #fff;
+}
+h2 {
+    font-family: "Roboto", "Helvetica", "Arial", sans-serif;
+    font-size: 45px;
+    font-weight: 400;
+    line-height: 48px;
+    margin-top: 24px;
+    margin-bottom: 24px;
+    color: #fff;
+}
+.customInputField::placeholder{
+  font-weight: 600;
+  font-size: 1.2em;
+}
+.customInputField:focus {
+    border: none;
+    outline: none;
+}
+.inputFields{
+  text-align: center;
+}
+.result{
+  text-align: center;
 }
