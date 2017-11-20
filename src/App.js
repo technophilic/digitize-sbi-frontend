@@ -84,7 +84,7 @@ class Home extends Component {
       form.append('aadhar_card', state.aadhar_card);
       form.append('accno', state.accno);
 
-        return fetch('http://139.59.73.1:8000/predict', {
+        return fetch('https://myffcs.in/predict', {
           method:'POST',
           body:form,
           'headers': {
