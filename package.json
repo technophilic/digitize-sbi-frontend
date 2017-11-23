@@ -15,6 +15,7 @@
     "react-router-dom": "^4.2.2",
     "react-scripts": "1.0.17",
     "react-webcam": "^0.2.0",
+    "recordrtc": "^5.4.5",
     "whatwg-fetch": "^2.0.3"
   },
   "scripts": {

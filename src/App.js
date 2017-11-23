@@ -1,12 +1,25 @@
 import React, { Component } from 'react';
-import Webcam from 'react-webcam';
 import Button from 'react-mdl/lib/Button';
 import { Card, CardActions } from 'react-mdl/lib/Card';
 import FontAwesome from 'react-fontawesome';
 import './App.css';
 import './index.css';
 import 'whatwg-fetch';
+import RecordRTC from 'recordrtc';
+import Webcam from './Webcam.react';
+// handle user media capture
 
+const hasGetUserMedia = !!(navigator.getUserMedia || navigator.webkitGetUserMedia ||
+                        navigator.mozGetUserMedia || navigator.msGetUserMedia);
+
+function captureUserMedia(callback) {
+  var params = { audio: false, video: true };
+
+  navigator.getUserMedia(params, callback, (error) => {
+
+    alert(JSON.stringify(error));
+  });
+};
 class Home extends Component {
     constructor(props){
       super(props);
@@ -21,22 +34,71 @@ class Home extends Component {
         similarityScore:'',
         message:'',
         error:'',
-        webVideo:false
+        webVideo:false,
+        recordVideo: null,
+        src: null,
+        uploadSuccess: null,
+        uploading: false,
+        params:null,
+        loading:false
+      }
+      this.startRecord = this.startRecord.bind(this);
+      this.stopRecord = this.stopRecord.bind(this);
+    }
+    componentDidMount() {
+      if(!hasGetUserMedia) {
+        alert("Your browser cannot stream from your webcam. Please switch to Chrome or Firefox.");
+        return;
       }
     }
-    onStop=()=>{
-      console.log('hey');
+
+    /*requestUserMedia() {
+      console.log('called request')
+      captureUserMedia((stream) => {
+        this.setState({ src: window.URL.createObjectURL(stream) });
+        console.log('setting state', this.state)
+      });
+    }*/
+
+    startRecord() {
+      this.setState({
+        webcam:true,
+        loading:true
+      })
+      captureUserMedia((stream) => {
+        this.setState({ src: window.URL.createObjectURL(stream) });
+        this.state.recordVideo = RecordRTC(stream, { type: 'video' });
+        this.state.recordVideo.startRecording();
+      });
+      setTimeout(() => {
+        this.setState({
+          webcam:false,
+          captured:true,
+          loading:false
+        })
+        this.stopRecord();
+      }, 5000);
     }
-    setRef = (webcam) => {
-      this.webcam = webcam;
+
+    stopRecord() {
+      this.state.recordVideo.stopRecording((blob) => {
+        let params = {
+          type: 'video/webm',
+          data: this.state.recordVideo.blob,
+          id: Math.floor(Math.random()*90000) + 10000
+        }
+
+        var self = this;
+        this.state.recordVideo.getDataURL(function(dataURL) {
+          self.setState({
+          params:dataURL,
+          src:blob
+        })});
+        this.submitForm();
+
+      });
     }
-    srcToFile=(src, fileName, mimeType)=>{
-        return (fetch(src)
-            .then(function(res){return res.arrayBuffer();})
-            .then(function(buf){
-              return new File([buf], fileName, {type:mimeType});})
-        );
-    }
+
     onChange=(event)=>{
       if(event.target.name==='accno'){
         this.setState({
@@ -49,24 +111,21 @@ class Home extends Component {
         })
       }
     }
-    capture = () => {
-      if(this.state.webcam){
-        const imageSrc = this.webcam.getScreenshot();
-        this.setState({
-          imageSrc:imageSrc,
-          webcam:false,
-          captured:true
-        })
-      }
-    };
     undo=()=>{
       this.setState({
         captured:false,
         webcam:true
       })
+      this.startRecord();
+    }
+    srcToFile=(src, fileName, mimeType)=>{
+        return (fetch(src)
+            .then(function(res){return res.arrayBuffer();})
+            .then(function(buf){
+              return new File([buf], fileName, {type:mimeType});})
+        );
     }
     submitForm=()=>{
-      let form = new FormData();
       var state = this.state;
       var self = this;
       if(state.aadhar_card.length!==12&&state.accno.length!==11){
@@ -75,16 +134,15 @@ class Home extends Component {
         })
         return;
       }
-      var imageSrcNew = this.srcToFile(this.state.imageSrc,this.state.accno+'.jpg','image/jpeg')
+      this.srcToFile(this.state.params,this.state.accno+'.webm','video/webm')
         .then(function(file){
-      var form = new FormData();
-      form.append('cap_img', file);
-      form.append('cap_vid', file);
+          var form = new FormData();
+          form.append('cap_vid', file);
+            console.log(file);
 
-      form.append('aadhar_card', state.aadhar_card);
-      form.append('accno', state.accno);
-
-        return fetch('https://myffcs.in/predict', {
+          form.append('aadhar_card', state.aadhar_card);
+          form.append('accno', state.accno);
+          return fetch('https://myffcs.in/predict', {
           method:'POST',
           body:form,
           'headers': {
@@ -99,18 +157,18 @@ class Home extends Component {
           return response.json();
         }).then(function(json){
           console.log(json);
-          if(json.prediction>0.5){
+          if(json.prediction>0.40){
           self.setState({
             result:true,
             message:'You were succesfully authenticated!',
-            similarityScore:json.prediction*100
+            similarityScore:(json.prediction*100).toFixed(2)
           })
         }
         else{
           self.setState({
             result:true,
             message:'You couldn\'t be authenticated',
-            similarityScore:json.prediction*100
+            similarityScore:(json.prediction*100).toFixed(2)
           })
         }
         }).catch(function(response){
@@ -122,30 +180,9 @@ class Home extends Component {
             similarityScore:'N/A'
           })
         });
-      })
-      .then(function(response){
-        console.log(response)
-      })
-      .catch(function(){
-        console.log('error');
       });
-      console.log(imageSrcNew);
     }
-    startCam = () => {
-      if(this.state.webcam===true){
-        const imageSrc = this.webcam.getScreenshot();
-        this.setState({
-          imageSrc:imageSrc,
-          webcam:false,
-          captured:true
-        })
-      }
-      else{
-        this.setState({
-          webcam:true
-        })
-      }
-    }
+
     render() {
       return (
         <span>
@@ -162,66 +199,46 @@ class Home extends Component {
             value={this.state.img}
             onChange={this.onChange} placeholder="Enter SBI Account number" className="customInputField" />
             <p>{this.state.error}</p>
-          {/*}<form action="http://139.59.73.1:8000/predict" ref="form" method="POST">
-            <input type="file"
-            ref={(c) => { this.file = c; }}
-            multiple='false'
-            name="cap_img"
-            value={this.state.file}
-            className="hidden"
-            />
-            <input type="hidden" name="aadhar_card" className="hidden" value="123456789010" />
-          </form>*/}
-          <Card shadow={0} style={{width: '350px', background: '#fff', margin: '100px auto'}}>
-                  {this.state.webcam?
-                  <div
-                  className='scanning'>
-                  <Webcam
-                    audio={false}
-                    height={350}
-                    ref={this.setRef}
-                    onUserMedia={this.onUserMedia}
-                    screenshotFormat="image/jpeg"
-                    width={350}
-                  /></div>:
-                  <div className='dummyContainer'><img className='dummy' src={this.state.imageSrc} alt="user"/></div>}
-                  {/*{this.state.webVideo ? <div>
-                    <VideoRecorder
-                        ref="recorder"
-                        onRecordingStarted={() => console.log('Started')}
-                        onRecordingFinished={(e) => console.log(e.nativeEvent.file)}
-                        onCameraAccessException={() => alert('No permission for camera')}
-                        onCameraFailed={() => alert('Camera failed')}
-                        type="front"
-                        videoEncodingBitrate={7000000}
-                        videoEncodingFrameRate={30}
-                      />
-                    </div>:'' }*/}
-                  <CardActions border className='actions'>
-                    {this.state.captured?<span>
-                      <Button onClick={this.undo} className='camera'>
-                        <FontAwesome
-                          className='super-crazy-colors'
-                          name='undo'
-                          size='2x'
-                        />
-                      </Button>
-                      <Button onClick={this.submitForm} className='camera'>
-                        <FontAwesome
-                          className='super-crazy-colors'
-                          name='check'
-                          size='2x'
-                        />
-                    </Button>
-                  </span>:<Button onClick={this.startCam} className='camera'>
+          <Card shadow={0} style={{width: '350px', background: '#fff', margin: '50px auto'}}>
+            <div className='dummyContainer'>
+              <div className='scanning'>
+                {this.state.webcam?<Webcam src={this.state.src} />:
+                <div>{this.state.captured?
+                <video autoPlay muted src={this.state.src} />:
+                <img className='dummy' src={this.state.imageSrc} alt="user"/>}
+                </div>}
+              </div>
+              </div>
+
+              <CardActions border className='actions'>
+                {this.state.captured?
+                <span>
+                  <Button onClick={this.undo} className='camera'>
                     <FontAwesome
-                      className='cameraIcon'
-                      name='camera'
+                      className='super-crazy-colors'
+                      name='undo'
                       size='2x'
                     />
-                  </Button>}
-                  </CardActions>
+                  </Button>
+              </span>:<Button onClick={this.startRecord} className='camera'>
+                <FontAwesome
+                  className='cameraIcon'
+                  name='camera'
+                  size='2x'
+                />
+              </Button>}
+
+            </CardActions>
           </Card>
+          {this.state.loading?
+            <FontAwesome
+            className='super-crazy-colors'
+            name='spinner'
+            spin
+            size='2x'
+          />:''}
+
+          <p>Please blink your eyes 3-4 times for live detection.</p>
           <div className='sbi'>
             <img src="images/SBI-logo.png" alt='sbi' />
           </div>
@@ -232,7 +249,7 @@ class Home extends Component {
           <h3>{this.state.message}</h3>
           {this.state.similarityScore!==''?
           <span>
-            {this.state.similarityScore>50?<img src="checked.png" className="image" />:''}
+            {this.state.similarityScore>42?<img src="checked.png" className="image" />:''}
             <h2>{this.state.similarityScore}</h2>
             <h3 className="testing">This is only for evaluation purposes and will not be shown to the user.</h3>
           </span>:''}
