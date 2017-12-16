@@ -13,7 +13,7 @@ const hasGetUserMedia = !!(navigator.getUserMedia || navigator.webkitGetUserMedi
                         navigator.mozGetUserMedia || navigator.msGetUserMedia);
 
 function captureUserMedia(callback) {
-  var params = { audio: false, video: true };
+  var params = { audio: false, video: { facingMode: { exact: "environment" } } };
 
   navigator.getUserMedia(params, callback, (error) => {
 
@@ -188,17 +188,7 @@ class Home extends Component {
         <span>
         {!this.state.result?
           <div className="inputFields">
-            <h4 style={{textAlign:'center','margin':'auto'}}>For Accessing Admin Portal go to
-              &nbsp;<a href="https://digitize-sbi-admin.surge.sh" target="_blank">
-              https://digitize-sbi-admin.surge.sh</a></h4>
           <h3>Click on the camera to access it.</h3>
-          <h4>We will match your photo with your bank photo ID.</h4>
-          <input type="text" value={this.state.aadhar_card}
-            onChange={this.onChange} name="aadhar_card" placeholder="Enter Aadhaar card number" className="customInputField" /><br/>
-          <input type="text" name="accno"
-            value={this.state.img}
-            onChange={this.onChange} placeholder="Enter SBI Account number" className="customInputField" />
-            <p>{this.state.error}</p>
           <Card shadow={0} style={{width: '350px', background: '#fff', margin: '50px auto'}}>
             <div className='dummyContainer'>
               <div className='scanning'>
@@ -238,7 +228,6 @@ class Home extends Component {
             size='2x'
           />:''}
 
-          <p>Please blink your eyes 3-4 times for live detection.</p>
           <div className='sbi'>
             <img src="images/SBI-logo.png" alt='sbi' />
           </div>
