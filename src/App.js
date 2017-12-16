@@ -70,14 +70,6 @@ class Home extends Component {
         this.state.recordVideo = RecordRTC(stream, { type: 'video' });
         this.state.recordVideo.startRecording();
       });
-      setTimeout(() => {
-        this.setState({
-          webcam:false,
-          captured:true,
-          loading:false
-        })
-        this.stopRecord();
-      }, 5000);
     }
 
     stopRecord() {
@@ -93,7 +85,9 @@ class Home extends Component {
           self.setState({
           params:dataURL,
           src:blob
-        })});
+        });
+          self.forceUpdate();
+        });
         this.submitForm();
 
       });
@@ -112,12 +106,23 @@ class Home extends Component {
       }
     }
     undo=()=>{
-      this.setState({
-        captured:false,
-        webcam:true
-      })
-      this.startRecord();
-    }
+        if(!this.state.loading){
+            this.setState({
+                captured:false,
+                webcam:true
+            });
+            this.startRecord();
+        }
+        else
+        {
+            this.setState({
+                webcam:false,
+                captured:true,
+                loading:false
+            });
+            this.stopRecord();
+        }
+    };
     srcToFile=(src, fileName, mimeType)=>{
         return (fetch(src)
             .then(function(res){return res.arrayBuffer();})
@@ -188,6 +193,7 @@ class Home extends Component {
         <span>
         {!this.state.result?
           <div className="inputFields">
+          <h3>Practo Hackathon</h3>
           <h3>Click on the camera to access it.</h3>
           <Card shadow={0} style={{width: '350px', background: '#fff', margin: '50px auto'}}>
             <div className='dummyContainer'>
@@ -210,7 +216,7 @@ class Home extends Component {
                       size='2x'
                     />
                   </Button>
-              </span>:<Button onClick={this.startRecord} className='camera'>
+              </span>:<Button onClick={this.undo} className='camera'>
                 <FontAwesome
                   className='cameraIcon'
                   name='camera'
